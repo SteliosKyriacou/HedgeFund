@@ -91,6 +91,7 @@ for ev in events:
     
     chart_data = fetch_yahoo_finance(ticker, fetch_start, fetch_end)
     if not chart_data or 'timestamp' not in chart_data:
+        # Ticker might be delisted or acquired
         continue
         
     timestamps = chart_data['timestamp']
@@ -99,40 +100,44 @@ for ev in events:
     except Exception:
         continue
         
-    daily_prices = {}
+    # Find closest entry and exit prices
+    entry_price = None
+    exit_price = None
     actual_entry_date = None
     actual_exit_date = None
     
     for i, ts in enumerate(timestamps):
-        dt = datetime.fromtimestamp(ts).date()
+        dt = datetime.fromtimestamp(ts)
         if closes[i] is None:
             continue
-        
-        daily_prices[dt] = closes[i]
             
         # First valid close >= entry_date
-        if actual_entry_date is None and dt >= entry_date.date():
+        if entry_price is None and dt >= entry_date:
+            entry_price = closes[i]
             actual_entry_date = dt
             
         # Last valid close <= exit_date
-        if dt <= exit_date.date():
+        if dt <= exit_date:
+            exit_price = closes[i]
             actual_exit_date = dt
             
-    if actual_entry_date is not None and actual_exit_date is not None and daily_prices[actual_entry_date] > 0:
-        entry_price = daily_prices[actual_entry_date]
-        exit_price = daily_prices[actual_exit_date]
-        
+    if entry_price is not None and exit_price is not None and entry_price > 0:
         stock_return = (exit_price - entry_price) / entry_price
-        
+        # Filter out flat returns or massive data errors (like >10000%)
         if -0.99 < stock_return < 100:
+            days_held = (actual_exit_date - actual_entry_date).days
+            # randomize borrow fee since we lack historical short data
             borrow_fee = random.uniform(0.40, 1.20) 
             
             processed_events.append({
                 'Ticker': ticker,
                 'Entry_Date': actual_entry_date,
                 'Exit_Date': actual_exit_date,
-                'Daily_Prices': daily_prices,
-                'Borrow_Fee': borrow_fee
+                'Entry_Price': entry_price,
+                'Exit_Price': exit_price,
+                'Stock_Return': stock_return,
+                'Borrow_Fee': borrow_fee,
+                'Days_Held': max(1, days_held)
             })
     
     # Prevent aggressive rate-limiting
@@ -147,93 +152,76 @@ if len(processed_events) == 0:
 
 # Backtest Engine
 INITIAL_CAPITAL = 10000000.0
+MAX_POS_PCT = 0.05
 
 cash = INITIAL_CAPITAL
+active_positions = []
 portfolio_history = []
 nav_dates = []
 trades_log = []
 
-# Using date() instead of datetime to match what is stored in actual_entry_date
 start_backtest = processed_events[0]['Entry_Date']
 end_backtest = processed_events[-1]['Exit_Date']
 total_days = (end_backtest - start_backtest).days
 all_dates = [start_backtest + timedelta(days=i) for i in range(total_days + 1)]
 
-# To track performance per trade over its lifetime
-trade_stats = {id(ev): {
-    'Ticker': ev['Ticker'],
-    'Entry_Date': ev['Entry_Date'],
-    'Exit_Date': ev['Exit_Date'],
-    'Entry_Price': ev['Daily_Prices'][ev['Entry_Date']],
-    'Exit_Price': ev['Daily_Prices'][ev['Exit_Date']],
-    'Max_Capital_Invested': 0.0,
-    'Stock_Profit': 0.0,
-    'Lending_Income': 0.0,
-    'Borrow_Fee': ev['Borrow_Fee']
-} for ev in processed_events}
-
-# Let's do a daily step backtest
-current_nav = INITIAL_CAPITAL
+event_idx = 0
 
 for current_date in all_dates:
-    # 1. Identify active events today
-    active_events = []
-    for ev in processed_events:
-        if ev['Entry_Date'] <= current_date <= ev['Exit_Date']:
-            active_events.append(ev)
+    # 1. Process Exits
+    positions_to_remove = []
+    for pos in active_positions:
+        if pos['Exit_Date'].date() <= current_date.date():
+            # Calculate final value
+            stock_value = pos['Capital_Invested'] * (1 + pos['Stock_Return'])
+            lending_income = pos['Capital_Invested'] * pos['Borrow_Fee'] * (pos['Days_Held'] / 365.0)
             
-    if not active_events:
-        # 100% Cash
-        nav_dates.append(current_date)
-        portfolio_history.append(current_nav)
-        continue
+            cash += stock_value + lending_income
+            positions_to_remove.append(pos)
+            
+            trades_log.append({
+                'Ticker': pos['Ticker'],
+                'Entry_Date': pos['Entry_Date'].strftime('%Y-%m-%d'),
+                'Exit_Date': pos['Exit_Date'].strftime('%Y-%m-%d'),
+                'Entry_Price': round(pos['Entry_Price'], 2),
+                'Exit_Price': round(pos['Exit_Price'], 2),
+                'Stock_Return_Pct': f"{pos['Stock_Return']*100:.1f}%",
+                'Borrow_Fee_Pct': f"{pos['Borrow_Fee']*100:.1f}%",
+                'Capital_Invested': round(pos['Capital_Invested'], 2),
+                'Lending_Income': round(lending_income, 2),
+                'Final_Value': round(stock_value + lending_income, 2)
+            })
+            
+    for pos in positions_to_remove:
+        active_positions.remove(pos)
         
-    # We allocate cash equally among all active events
-    allocation_per_event = current_nav / len(active_events)
-    
-    daily_total_profit = 0.0
-    
-    # Calculate overnight PnL
-    yesterday = current_date - timedelta(days=1)
-    
-    for ev in active_events:
-        stats = trade_stats[id(ev)]
-        if allocation_per_event > stats['Max_Capital_Invested']:
-            stats['Max_Capital_Invested'] = allocation_per_event
-            
-        # Daily lending income (365 day year)
-        daily_lending = allocation_per_event * (ev['Borrow_Fee'] / 365.0)
-        stats['Lending_Income'] += daily_lending
-        daily_total_profit += daily_lending
+    # 2. Process Entries
+    current_nav = cash
+    for pos in active_positions:
+        # Mark to market using rough prorated return (simplified for daily NAV)
+        days_in = max(0, (current_date.date() - pos['Entry_Date'].date()).days)
+        prorated_ret = pos['Stock_Return'] * (days_in / max(1, pos['Days_Held']))
+        prorated_lending = pos['Capital_Invested'] * pos['Borrow_Fee'] * (days_in / 365.0)
         
-        # Stock price change
-        # Find the most recent price <= current_date
-        today_price = None
-        d = current_date
-        while d >= ev['Entry_Date']:
-            if d in ev['Daily_Prices']:
-                today_price = ev['Daily_Prices'][d]
-                break
-            d -= timedelta(days=1)
-            
-        # Find the price <= yesterday
-        yest_price = None
-        if yesterday >= ev['Entry_Date']:
-            d = yesterday
-            while d >= ev['Entry_Date']:
-                if d in ev['Daily_Prices']:
-                    yest_price = ev['Daily_Prices'][d]
-                    break
-                d -= timedelta(days=1)
-                
-        # If we have both, calculate percentage return
-        if today_price is not None and yest_price is not None and yest_price > 0:
-            daily_pct = (today_price - yest_price) / yest_price
-            daily_stock_pnl = allocation_per_event * daily_pct
-            stats['Stock_Profit'] += daily_stock_pnl
-            daily_total_profit += daily_stock_pnl
-            
-    current_nav += daily_total_profit
+        current_nav += (pos['Capital_Invested'] * (1 + prorated_ret)) + prorated_lending
+        
+    while event_idx < len(processed_events) and processed_events[event_idx]['Entry_Date'].date() <= current_date.date():
+        event = processed_events[event_idx]
+        if event['Entry_Date'].date() == current_date.date():
+            target_allocation = current_nav * MAX_POS_PCT
+            if cash > target_allocation:
+                cash -= target_allocation
+                new_pos = event.copy()
+                new_pos['Capital_Invested'] = target_allocation
+                active_positions.append(new_pos)
+            elif cash > 0:
+                allocation = cash
+                cash -= allocation
+                new_pos = event.copy()
+                new_pos['Capital_Invested'] = allocation
+                active_positions.append(new_pos)
+        event_idx += 1
+        
     nav_dates.append(current_date)
     portfolio_history.append(current_nav)
 
@@ -241,39 +229,26 @@ final_nav = portfolio_history[-1]
 years = total_days / 365.25
 cagr = (final_nav / INITIAL_CAPITAL) ** (1 / years) - 1
 
-# Prepare CSV output
-trades_log_output = []
-for ev in processed_events:
-    stats = trade_stats[id(ev)]
-    entry_price = stats['Entry_Price']
-    exit_price = stats['Exit_Price']
-    stock_ret_pct = (exit_price - entry_price) / entry_price
-    
-    trades_log_output.append({
-        'Ticker': stats['Ticker'],
-        'Entry_Date': stats['Entry_Date'].strftime('%Y-%m-%d'),
-        'Exit_Date': stats['Exit_Date'].strftime('%Y-%m-%d'),
-        'Entry_Price': round(entry_price, 2),
-        'Exit_Price': round(exit_price, 2),
-        'Stock_Return_Pct': f"{stock_ret_pct*100:.1f}%",
-        'Borrow_Fee_Pct': f"{stats['Borrow_Fee']*100:.1f}%",
-        'Capital_Invested': round(stats['Max_Capital_Invested'], 2),
-        'Lending_Income': round(stats['Lending_Income'], 2),
-        'Final_Value': round(stats['Max_Capital_Invested'] + stats['Stock_Profit'] + stats['Lending_Income'], 2)
-    })
+# Calculate Max Drawdown
+peak = INITIAL_CAPITAL
+max_dd = 0.0
+for nav in portfolio_history:
+    if nav > peak:
+        peak = nav
+    dd = (nav - peak) / peak
+    if dd < max_dd:
+        max_dd = dd
 
-total_lending_income = sum([t['Lending_Income'] for t in trades_log_output])
+total_lending_income = sum([t['Lending_Income'] for t in trades_log])
 
 # Write CSV
 with open('../data/fpsl_real_data_trades.csv', 'w') as f:
     f.write("Ticker,Entry_Date,Exit_Date,Entry_Price,Exit_Price,Stock_Return_Pct,Borrow_Fee_Pct,Capital_Invested,Lending_Income,Final_Value\n")
-    for t in trades_log_output:
+    for t in trades_log:
         f.write(f"{t['Ticker']},{t['Entry_Date']},{t['Exit_Date']},{t['Entry_Price']},{t['Exit_Price']},{t['Stock_Return_Pct']},{t['Borrow_Fee_Pct']},{t['Capital_Invested']},{t['Lending_Income']},{t['Final_Value']}\n")
 
 # Fetch SPY for comparison
-spy_start_dt = datetime.combine(start_backtest, datetime.min.time())
-spy_end_dt = datetime.combine(end_backtest, datetime.min.time())
-spy_data = fetch_yahoo_finance('SPY', spy_start_dt - timedelta(days=10), spy_end_dt + timedelta(days=10))
+spy_data = fetch_yahoo_finance('SPY', start_backtest - timedelta(days=10), end_backtest + timedelta(days=10))
 spy_closes = []
 if spy_data and 'timestamp' in spy_data:
     try:
@@ -288,7 +263,7 @@ if spy_data and 'timestamp' in spy_data:
                 
         last_spy = spy_close_vals[0]
         for d in nav_dates:
-            dt = d
+            dt = d.date()
             if dt in spy_dict:
                 last_spy = spy_dict[dt]
             spy_closes.append(last_spy)
@@ -311,7 +286,7 @@ ax.set_ylabel('Portfolio NAV (USD) - Log Scale', fontsize=12, fontweight='bold',
 import matplotlib.ticker as ticker
 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, pos: f'${y:,.0f}'))
 
-plt.title(f'Institutional FPSL Hedge Fund (Real Data: {len(trades_log_output)} Events)', fontsize=16, fontweight='bold', color='white', pad=20)
+plt.title(f'Institutional FPSL Hedge Fund (Real Data: {len(trades_log)} Events)', fontsize=16, fontweight='bold', color='white', pad=20)
 plt.xlabel('Date', fontsize=12, fontweight='bold', color='white')
 plt.grid(True, alpha=0.2, linestyle='--')
 plt.legend(loc='upper left', fontsize=12, frameon=True, facecolor='#1a1a1a', edgecolor='white')
