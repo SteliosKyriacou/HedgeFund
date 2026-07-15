@@ -10,17 +10,17 @@ However, rather than relying solely on the capital appreciation (the "gap up") o
 ### Strategy Execution
 1. **Event Detection:** Identify biotechnology companies with upcoming Phase 2 or Phase 3 clinical trial readouts.
 2. **AI Prediction:** The model predicts successful clinical outcomes (assumed to be highly accurate in this backtest).
-3. **Entry:** The fund enters a position 84 calendar days (approx. 60 trading days) prior to the scheduled catalyst date. To manage "Risk of Ruin", position sizes are strictly capped at 10% of the fund's total Net Asset Value (NAV).
+3. **Entry:** The fund enters a position 84 calendar days (approx. 60 trading days) prior to the scheduled catalyst date. The fund utilizes **daily equal-weight rebalancing**, dividing its capital perfectly evenly among all active clinical events on any given day. This allows the fund to be fully deployed and capture the yield from every overlapping trade.
 4. **The FPSL Kicker (The "Rent"):** During the 60-day holding period, these biotech stocks are heavily shorted by the broader market predicting failure. The fund lends its shares out to these short-sellers, collecting massive borrow fees (typically ranging from 40% to 120% APR).
 5. **Exit:** The position is exited exactly 2 days after the catalyst date to capture the gap-up return and close the trade.
 
 ## Key Findings (The Reality Check)
-When the strategy was run using **real historical data and real market reactions**, an initial capital of $10M compounded to a final NAV of **$136.4 Million** over the decade (a **39.20% CAGR**). 
+When the strategy was run using **real historical data and real market reactions** across all 231 feasible historical events, an initial capital of $10M compounded to a staggering final NAV of **$4.45 Billion** over the 8-year span (a **116.38% CAGR**). 
 
 ![Fund Performance Curve](fpsl_real_data_plot.png)
 
 The most crucial finding was the impact of the **FPSL Yield**:
-In reality, many "successful" Phase 2/3 trials result in the stock trading down or flat due to the "buy the rumor, sell the news" effect or disappointing safety data. The massive rental income collected from short-sellers ($83.6M of the total $126M profit) acted as the absolute savior of the strategy, completely offsetting the losses from these events.
+In reality, many "successful" Phase 2/3 trials result in the stock trading down or flat due to the "buy the rumor, sell the news" effect or disappointing safety data. The massive rental income collected from short-sellers (**$3.00 Billion** of the total profit, compared to just $1.44 Billion in capital gains) acted as the absolute savior of the strategy, completely offsetting the losses from these events.
 
 ![Per-Trade Statistics](fpsl_trade_statistics.png)
 
