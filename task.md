@@ -1,0 +1,6 @@
+- `[x]` Create `generate_web_data.py` to parse CSV and fetch daily prices for each trade.
+- `[x]` Run `generate_web_data.py` to produce `data.json`.
+- `[x]` Create `index.html` structure.
+- `[x]` Create `style.css` for a premium dark mode aesthetic.
+- `[x]` Create `app.js` using Chart.js or Plotly to render the interactive graphs.
+- `[x]` Start local web server and verify.
