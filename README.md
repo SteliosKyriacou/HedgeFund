@@ -10,39 +10,32 @@ However, rather than relying solely on the capital appreciation (the "gap up") o
 ### Strategy Execution
 1. **Event Detection:** Identify biotechnology companies with upcoming Phase 2 or Phase 3 clinical trial readouts.
 2. **AI Prediction:** The model predicts successful clinical outcomes (assumed to be highly accurate in this backtest).
-3. **Entry:** The fund enters a position 84 calendar days (approx. 60 trading days) prior to the scheduled catalyst date. To manage "Risk of Ruin", position sizes are strictly capped at 5% of the fund's total Net Asset Value (NAV), allowing the fund to hold up to 20 concurrent positions.
+3. **Entry:** The fund enters a position 84 calendar days (approx. 60 trading days) prior to the scheduled catalyst date. The fund utilizes **daily equal-weight rebalancing**, dividing its capital perfectly evenly among all active clinical events on any given day. This allows the fund to be fully deployed and capture the yield from every overlapping trade.
 4. **The FPSL Kicker (The "Rent"):** During the 60-day holding period, these biotech stocks are heavily shorted by the broader market predicting failure. The fund lends its shares out to these short-sellers, collecting massive borrow fees (typically ranging from 40% to 120% APR).
 5. **Exit:** The position is exited exactly 2 days after the catalyst date to capture the gap-up return and close the trade.
 
-## Key Findings (The Reality Check)
-When the strategy was run using **real historical data and real market reactions**, allowing for up to 20 concurrent overlapping trades, an initial capital of $10M compounded to a final NAV of **$54.49 Million** over the 8-year span (a **23.94% CAGR**). 
+A **Monte Carlo Simulation (100 Iterations)** was performed assuming the AI model has an **80% Precision Rate** (80% of taken trades are actual clinical successes, 20% are actual failures). The 8-year daily-rebalancing model compounded an initial capital of $10M into a **Mean Final NAV of $320.15 Million** (a **53.50% Mean CAGR**).
 
-![Fund Performance Curve](fpsl_real_data_plot.png)
+![Fund Performance Curve](fpsl_mc_plot.png)
 
-The most crucial finding was the impact of the **FPSL Yield**:
-In reality, many "successful" Phase 2/3 trials result in the stock trading down or flat due to the "buy the rumor, sell the news" effect or disappointing safety data. The massive rental income collected from short-sellers (**$30.5M** of the total profit, compared to just $13.9M in capital gains) acted as the absolute savior of the strategy, completely offsetting the losses from these events.
+The most crucial finding was the impact of the **FPSL Yield** acting as a hedge against the 20% model failure rate:
+In reality, many "successful" Phase 2/3 trials result in the stock trading down or flat due to the "buy the rumor, sell the news" effect. Furthermore, the 20% of trades that actually failed the clinical trial resulted in severe gap-downs (often -60% to -80%). However, the massive rental income collected from short-sellers heavily subsidized these losses. 
 
-![Per-Trade Statistics](fpsl_trade_statistics.png)
+![Per-Trade Statistics](fpsl_mc_boxplots.png)
 
 ## Repository Structure
 *   `data/`
     *   `BioPharmCatalyst.csv`: The raw dataset of clinical events.
     *   `fpsl_real_data_trades.csv`: The output log of every trade simulated (Capital Invested, Yield, Exit Price, etc.)
 *   `src/`
-    *   `fpsl_real_data_engine.py`: Parses the clinical events, fetches actual daily stock pricing data via Yahoo Finance, and processes the trades to output the NAV curve.
-    *   `plot_trade_stats.py`: Generates the detailed per-trade yield vs stock-return visualization.
-*   `fpsl_real_data_plot.png`: The main performance curve.
-*   `fpsl_trade_statistics.png`: The breakdown chart of returns for all trades.
+    *   `fpsl_mc_engine.py`: Parses the clinical events, caches pricing data, and runs 100 simulations sampling 80% successes and 20% failures.
+*   `fpsl_mc_plot.png`: The Monte Carlo NAV distribution curve.
+*   `fpsl_mc_boxplots.png`: The statistical distribution of returns segmented by outcome.
 
 ## Recreating the Analysis
 
-Run the backtest engine first. It will read `BioPharmCatalyst.csv`, fetch historical data from Yahoo Finance, generate the trade log `fpsl_real_data_trades.csv` in `data/`, and output the NAV curve image `fpsl_real_data_plot.png` in the root directory.
+Run the Monte Carlo engine. It will read `BioPharmCatalyst.csv`, fetch historical data from Yahoo Finance, and run the 100 iterations.
 ```bash
 cd src
-python3 fpsl_real_data_engine.py
-```
-
-Then generate the specific trade breakdown statistics visualization:
-```bash
-python3 plot_trade_stats.py
+python3 fpsl_mc_engine.py
 ```
