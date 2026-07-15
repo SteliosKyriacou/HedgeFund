@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 # Seed for FPSL randomization
 random.seed(42)
 
-CSV_FILE = ".system_generated/steps/209/content.md"
+CSV_FILE = "../data/BioPharmCatalyst.csv"
 
 def fetch_yahoo_finance(ticker, start_date, end_date):
     start_ts = int(start_date.timestamp())
@@ -242,7 +242,7 @@ for nav in portfolio_history:
 total_lending_income = sum([t['Lending_Income'] for t in trades_log])
 
 # Write CSV
-with open('fpsl_real_data_trades.csv', 'w') as f:
+with open('../data/fpsl_real_data_trades.csv', 'w') as f:
     f.write("Ticker,Entry_Date,Exit_Date,Entry_Price,Exit_Price,Stock_Return_Pct,Borrow_Fee_Pct,Capital_Invested,Lending_Income,Final_Value\n")
     for t in trades_log:
         f.write(f"{t['Ticker']},{t['Entry_Date']},{t['Exit_Date']},{t['Entry_Price']},{t['Exit_Price']},{t['Stock_Return_Pct']},{t['Borrow_Fee_Pct']},{t['Capital_Invested']},{t['Lending_Income']},{t['Final_Value']}\n")
@@ -292,7 +292,7 @@ plt.grid(True, alpha=0.2, linestyle='--')
 plt.legend(loc='upper left', fontsize=12, frameon=True, facecolor='#1a1a1a', edgecolor='white')
 
 plt.tight_layout()
-plt.savefig('fpsl_real_data_plot.png', dpi=300)
+plt.savefig('../fpsl_real_data_plot.png', dpi=300)
 
 print(f"Final NAV: ${final_nav:,.2f}")
 print(f"Total Lending Income: ${total_lending_income:,.2f}")

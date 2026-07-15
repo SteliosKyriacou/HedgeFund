@@ -1,6 +1,6 @@
 # Biotech Fully Paid Securities Lending (FPSL) Strategy
 
-This repository contains an institutional-grade quantitative backtest and an interactive web visualization for a specialized biotech hedge fund strategy.
+This repository contains an institutional-grade quantitative backtest for a specialized biotech hedge fund strategy.
 
 ## The Core Thesis
 The strategy models the returns of a hypothetical hedge fund equipped with a highly accurate AI model capable of predicting the outcomes of Phase 2 and Phase 3 clinical trials for small-cap and mid-cap biotechnology companies. 
@@ -14,24 +14,6 @@ However, rather than relying solely on the capital appreciation (the "gap up") o
 4. **The FPSL Kicker (The "Rent"):** During the 60-day holding period, these biotech stocks are heavily shorted by the broader market predicting failure. The fund lends its shares out to these short-sellers, collecting massive borrow fees (typically ranging from 40% to 120% APR).
 5. **Exit:** The position is exited exactly 2 days after the catalyst date to capture the gap-up return and close the trade.
 
-## Repository Contents
-
-### Backtest Engines
-*   **`fpsl_synthetic_engine.py`**: A pure Python Monte Carlo simulation that generates a statistically rigorous 10-year backtest (150 events). It bypasses live data API rate limits by mirroring the true historical lognormal distribution of biotech Phase 2/3 gap-ups (Mean +80%, StdDev 40%).
-*   **`fpsl_real_data_engine.py`**: A custom backtest engine that parses a real historical dataset (`BioPharmCatalyst.csv`), dynamically fetches daily historical prices from Yahoo Finance via `curl`, and simulates the portfolio using actual market reactions across 235 successful clinical events over a decade.
-
-### Data & Results
-*   **`fpsl_real_data_trades.csv`**: The exact entry/exit dates, prices, stock returns, and lending income for the 235 trades executed in the real-data backtest.
-*   **`fpsl_full_backtest_trades.csv`**: The trade log for the synthetic Monte Carlo institutional backtest.
-*   **`data.json`**: The packaged dataset containing daily price action for all 235 real-data holding periods, generated for the web app.
-
-### Interactive Web Dashboard
-A premium, dark-mode, glassmorphism web application designed to visualize the real-data backtest. It plots the 10-year NAV curve and allows users to click on any executed trade to see a deep-dive analysis of that specific stock's price action and the breakdown of Capital Return vs. Lending Income.
-*   `index.html`
-*   `style.css`
-*   `app.js`
-*   `generate_web_data.py`: The script used to fetch the daily tick data and build `data.json`.
-
 ## Key Findings (The Reality Check)
 When the strategy was run using **real historical data and real market reactions**, an initial capital of $10M compounded to a final NAV of **$136.4 Million** over the decade (a **39.20% CAGR**). 
 
@@ -42,9 +24,25 @@ In reality, many "successful" Phase 2/3 trials result in the stock trading down 
 
 ![Per-Trade Statistics](fpsl_trade_statistics.png)
 
-## How to Run the Web App
-Simply start a local web server in the directory:
+## Repository Structure
+*   `data/`
+    *   `BioPharmCatalyst.csv`: The raw dataset of clinical events.
+    *   `fpsl_real_data_trades.csv`: The output log of every trade simulated (Capital Invested, Yield, Exit Price, etc.)
+*   `src/`
+    *   `fpsl_real_data_engine.py`: Parses the clinical events, fetches actual daily stock pricing data via Yahoo Finance, and processes the trades to output the NAV curve.
+    *   `plot_trade_stats.py`: Generates the detailed per-trade yield vs stock-return visualization.
+*   `fpsl_real_data_plot.png`: The main performance curve.
+*   `fpsl_trade_statistics.png`: The breakdown chart of returns for all trades.
+
+## Recreating the Analysis
+
+Run the backtest engine first. It will read `BioPharmCatalyst.csv`, fetch historical data from Yahoo Finance, generate the trade log `fpsl_real_data_trades.csv` in `data/`, and output the NAV curve image `fpsl_real_data_plot.png` in the root directory.
 ```bash
-python3 -m http.server 8000
+cd src
+python3 fpsl_real_data_engine.py
 ```
-Then navigate to `http://localhost:8000/` in your browser.
+
+Then generate the specific trade breakdown statistics visualization:
+```bash
+python3 plot_trade_stats.py
+```

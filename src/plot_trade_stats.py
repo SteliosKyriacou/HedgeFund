@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 trades = []
-with open('fpsl_real_data_trades.csv', 'r') as f:
+with open('../data/fpsl_real_data_trades.csv', 'r') as f:
     reader = csv.DictReader(f)
     for row in reader:
         trades.append({
@@ -54,5 +54,5 @@ for text in leg.get_texts():
     text.set_color("white")
 
 plt.tight_layout()
-plt.savefig('fpsl_trade_statistics.png', dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
+plt.savefig('../fpsl_trade_statistics.png', dpi=300, facecolor=fig.get_facecolor(), edgecolor='none')
 plt.close()
