@@ -35,8 +35,12 @@ A premium, dark-mode, glassmorphism web application designed to visualize the re
 ## Key Findings (The Reality Check)
 When the strategy was run using **real historical data and real market reactions**, an initial capital of $10M compounded to a final NAV of **$136.4 Million** over the decade (a **39.20% CAGR**). 
 
+![Fund Performance Curve](fpsl_real_data_plot.png)
+
 The most crucial finding was the impact of the **FPSL Yield**:
 In reality, many "successful" Phase 2/3 trials result in the stock trading down or flat due to the "buy the rumor, sell the news" effect or disappointing safety data. The massive rental income collected from short-sellers ($83.6M of the total $126M profit) acted as the absolute savior of the strategy, completely offsetting the losses from these events.
+
+![Per-Trade Statistics](fpsl_trade_statistics.png)
 
 ## How to Run the Web App
 Simply start a local web server in the directory:
