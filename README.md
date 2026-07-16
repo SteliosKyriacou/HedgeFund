@@ -28,6 +28,32 @@ To visualize exactly how the yield cushions the capital losses in a single seque
 
 ![Representative MC Simulation Trades](fpsl_mc_representative_trades.png)
 
+## Real-World Viability Critique: Can This Be Executed?
+
+If a fund manager actually possessed an AI model with a proven, sustained **80% Precision Rate** predicting clinical trial outcomes, this strategy would be massively profitable. However, the theoretical $701M Final NAV (175% CAGR) is an abstraction. In the real world, several major institutional roadblocks would prevent compounding at this exact exponential scale.
+
+Here is a breakdown of the real-world friction this strategy would face:
+
+### 1. Capacity Constraints and Liquidity (The Scaling Problem)
+The most fatal flaw in the exponential compounding curve is **liquidity**. The strategy targets small-to-mid-cap biotechnology companies. As the fund's NAV grows from $10M to $100M, and eventually $700M, the position sizes become too large for the underlying stocks.
+*   **Slippage:** Trying to deploy $5M to $15M into a micro-cap biotech stock over a few days will cause massive slippage. The fund's buying pressure will drive the entry price up, and its selling pressure post-catalyst will drive the exit price down, destroying the modeled returns.
+*   **Float Ownership:** At $700M NAV, equal-weighting across 5 active events means buying $140M of a single small-cap biotech. In many cases, this is more than the entire market capitalization of the company. You cannot execute this strategy past a certain NAV capacity without becoming an activist investor or triggering SEC threshold filings.
+
+### 2. The Mechanics of Securities Lending
+The simulation assumes the fund can perfectly lend 100% of its shares at extreme Hard-to-Borrow (HTB) rates (100%-300% APR).
+*   **Borrow Demand Caps:** Just because a stock is HTB does not mean there is infinite demand from short-sellers to borrow your shares. If you buy $20M of a stock, there may only be $2M of actual short demand willing to pay those extreme rates.
+*   **Prime Broker Cuts:** The simulation assumes the fund keeps 100% of the yield. In reality, prime brokers take a massive cut (often 20% to 50%) of the lending revenue generated from your Fully Paid Securities Lending (FPSL) program.
+
+### 3. Gap-Down Liquidity on the 20% Failures
+The simulation models failures as a randomized -40% to -85% loss. However, when a binary clinical trial fails, the stock is often halted. When it unhalts, there are zero buyers. The price gaps down violently. Attempting to liquidate a massive position in a failed biotech could result in far worse execution than the modeled -85%. You could easily be trapped in the position or forced to liquidate at -95%.
+
+### 4. Overlapping Event Windows
+The model assumes you can precisely equal-weight capital across overlapping events. In reality, catalyst dates are famously unpredictable (e.g., "Q3 2016" or "1H 2017"). It is impossible to perfectly timeline the entry and exit dates of these trades in advance, which forces the fund to hold un-invested cash, creating cash drag and lowering the CAGR.
+
+### Conclusion
+**The Verdict:** Yes, this strategy is highly viable and extremely lucrative, **but only up to a specific capacity limit** (likely a $25M - $50M AUM ceiling). 
+With an 80% accurate AI model, a smaller fund could effortlessly execute these trades, extract the massive short-seller rent, and compound rapidly. But as the NAV scales past $50M, liquidity constraints, slippage, and an inability to lend the entire book would force the fund to stop compounding and start paying out distributions to cap the AUM.
+
 ## Repository Structure
 *   `data/`
     *   `BioPharmCatalyst.csv`: The raw dataset of clinical events.
