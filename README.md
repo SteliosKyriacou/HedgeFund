@@ -23,6 +23,11 @@ In reality, many "successful" Phase 2/3 trials result in the stock trading down 
 
 ![Per-Trade Statistics](fpsl_mc_boxplots.png)
 
+### Representative Simulation (Per-Trade Breakdown)
+To visualize exactly how the yield cushions the capital losses in a single sequential timeline, the script isolates the specific simulation whose final NAV closest matches the $320.15 Million Mean.
+
+![Representative MC Simulation Trades](fpsl_mc_representative_trades.png)
+
 ## Repository Structure
 *   `data/`
     *   `BioPharmCatalyst.csv`: The raw dataset of clinical events.
