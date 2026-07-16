@@ -15,12 +15,12 @@ However, rather than relying solely on the capital appreciation (the "gap up") o
 5. **Exit:** The position is exited exactly 2 days after the catalyst date to capture the gap-up return and close the trade.
 
 ## Key Findings (The Reality Check)
-When the strategy was run using **real historical data and real market reactions** across all 234 feasible historical events (ignoring the 1.5 year chronological gap prior to August 2011), an initial capital of $10M compounded to a staggering final NAV of **$3.06 Billion** over the remaining timespan (a **153.90% CAGR**). 
+When the strategy was run using **real historical data and real market reactions** across all 221 feasible historical events (focusing solely on the high-frequency 2014-2018 window), an initial capital of $10M compounded to a staggering final NAV of **$964.79 Million** over the 5-year span (a **223.65% CAGR**). 
 
 ![Fund Performance Curve](fpsl_real_data_plot.png)
 
 The most crucial finding was the impact of the **FPSL Yield**:
-In reality, many "successful" Phase 2/3 trials result in the stock trading down or flat due to the "buy the rumor, sell the news" effect or disappointing safety data. The massive rental income collected from short-sellers (**$2.06 Billion** of the total profit, compared to just $0.99 Billion in capital gains) acted as the absolute savior of the strategy, completely offsetting the losses from these events.
+In reality, many "successful" Phase 2/3 trials result in the stock trading down or flat due to the "buy the rumor, sell the news" effect or disappointing safety data. The massive rental income collected from short-sellers (**$662.72 Million** of the total profit, compared to just $292.07 Million in capital gains) acted as the absolute savior of the strategy, completely offsetting the losses from these events.
 
 ![Per-Trade Statistics](fpsl_trade_statistics.png)
 
