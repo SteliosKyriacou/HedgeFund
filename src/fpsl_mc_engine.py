@@ -88,7 +88,7 @@ with open(CSV_FILE, 'r') as f:
             })
 
 all_events.sort(key=lambda x: x['Catalyst_Date'])
-all_events = [ev for ev in all_events if ev['Catalyst_Date'] >= datetime(2011, 8, 1)]
+all_events = [ev for ev in all_events if datetime(2014, 1, 1) <= ev['Catalyst_Date'] <= datetime(2018, 12, 31)]
 print(f"Found {len([e for e in all_events if e['Actual_Outcome'] == 'Success'])} successes and {len([e for e in all_events if e['Actual_Outcome'] == 'Failure'])} failures.")
 
 valid_events = []
