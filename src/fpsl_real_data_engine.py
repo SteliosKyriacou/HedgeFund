@@ -72,6 +72,7 @@ with open(CSV_FILE, 'r') as f:
 
 # Sort by date
 events.sort(key=lambda x: x['Catalyst_Date'])
+events = [ev for ev in events if ev['Catalyst_Date'] >= datetime(2011, 8, 1)]
 print(f"Found {len(events)} potentially successful catalyst events.")
 
 processed_events = []
