@@ -47,6 +47,7 @@ with open(CSV_FILE, 'r') as f:
         status = row.get('Approved or CRL', '').strip().lower()
         cat_date_str = row.get('Catalyst Date', '').strip()
         desc = row.get('Catalyst Description', '').strip().lower()
+        drug_name = row.get('Drug Name', '').strip()
         
         if not ticker or not cat_date_str:
             continue
@@ -76,7 +77,8 @@ with open(CSV_FILE, 'r') as f:
                 'Catalyst_Date': cat_date,
                 'Description': desc,
                 'Status': status,
-                'Actual_Outcome': 'Success'
+                'Actual_Outcome': 'Success',
+                'Drug Name': drug_name
             })
         elif is_failure:
             all_events.append({
@@ -84,7 +86,8 @@ with open(CSV_FILE, 'r') as f:
                 'Catalyst_Date': cat_date,
                 'Description': desc,
                 'Status': status,
-                'Actual_Outcome': 'Failure'
+                'Actual_Outcome': 'Failure',
+                'Drug Name': drug_name
             })
 
 all_events.sort(key=lambda x: x['Catalyst_Date'])
@@ -92,7 +95,17 @@ all_events = [ev for ev in all_events if datetime(2014, 1, 1) <= ev['Catalyst_Da
 print(f"Found {len([e for e in all_events if e['Actual_Outcome'] == 'Success'])} successes and {len([e for e in all_events if e['Actual_Outcome'] == 'Failure'])} failures.")
 
 valid_events = []
+try:
+    with open('../data/small_molecules_list.json', 'r') as f:
+        small_molecules = set(json.load(f))
+except:
+    small_molecules = set()
+    
 for ev in all_events:
+    # Only process small molecules
+    if ev['Drug Name'] not in small_molecules:
+        continue
+        
     ticker = ev['Ticker']
     cat_date = ev['Catalyst_Date']
     
