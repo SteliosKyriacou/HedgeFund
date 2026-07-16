@@ -172,6 +172,7 @@ NUM_SIMS = 100
 sim_nav_histories = []
 sim_cagrs = []
 all_sim_trades = []
+sim_trade_stats = []
 
 # Total trades to sample per sim to match approx V1
 # Let's say ~230 trades per sim.
@@ -204,6 +205,13 @@ for sim_idx in range(NUM_SIMS):
     
     current_nav = INITIAL_CAPITAL
     
+    trade_stats = {id(ev): {
+        'Ticker': ev['Ticker'],
+        'Lending_Income': 0.0,
+        'Stock_Profit': 0.0,
+        'Max_Capital_Invested': 0.0
+    } for ev in sim_events}
+    
     for ev in sim_events:
         all_sim_trades.append({
             'Sim_ID': sim_idx,
@@ -228,7 +236,12 @@ for sim_idx in range(NUM_SIMS):
         yesterday = current_date - timedelta(days=1)
         
         for ev in active_events:
+            stats = trade_stats[id(ev)]
+            if allocation_per_event > stats['Max_Capital_Invested']:
+                stats['Max_Capital_Invested'] = allocation_per_event
+                
             daily_lending = allocation_per_event * (ev['Borrow_Fee'] / 365.0)
+            stats['Lending_Income'] += daily_lending
             daily_total_profit += daily_lending
             
             today_price = None
@@ -251,12 +264,14 @@ for sim_idx in range(NUM_SIMS):
             if today_price is not None and yest_price is not None and yest_price > 0:
                 daily_pct = (today_price - yest_price) / yest_price
                 daily_stock_pnl = allocation_per_event * daily_pct
+                stats['Stock_Profit'] += daily_stock_pnl
                 daily_total_profit += daily_stock_pnl
                 
         current_nav += daily_total_profit
         portfolio_history.append(current_nav)
         
     sim_nav_histories.append(portfolio_history)
+    sim_trade_stats.append(list(trade_stats.values()))
     final_nav = portfolio_history[-1]
     years = total_days / 365.25
     cagr = (final_nav / INITIAL_CAPITAL) ** (1 / years) - 1
@@ -326,6 +341,52 @@ plt.suptitle('Monte Carlo Per-Transaction Distribution (100 Sims)', fontsize=16,
 plt.tight_layout()
 plt.savefig('../fpsl_mc_boxplots.png', dpi=300)
 
+mean_cagr = np.mean(sim_cagrs)
 print("Monte Carlo Simulation Complete.")
 print(f"Mean Final NAV: ${mean_nav[-1]:,.2f}")
-print(f"Mean CAGR: {np.mean(sim_cagrs)*100:.2f}%")
+print(f"Mean CAGR: {mean_cagr*100:.2f}%")
+
+# Generate Representative Bar Chart
+target_sim_idx = np.argmin(np.abs(np.array([hist[-1] for hist in sim_nav_histories]) - mean_nav[-1]))
+rep_stats = sim_trade_stats[target_sim_idx]
+
+net_profits = []
+stock_profits = []
+lending_incomes = []
+
+for t in rep_stats:
+    net = t['Stock_Profit'] + t['Lending_Income']
+    net_profits.append(net / 1e6)
+    stock_profits.append(t['Stock_Profit'] / 1e6)
+    lending_incomes.append(t['Lending_Income'] / 1e6)
+
+fig3, ax3 = plt.subplots(figsize=(16, 8))
+x = np.arange(len(rep_stats))
+width = 0.6
+
+stock_profits_arr = np.array(stock_profits)
+lending_incomes_arr = np.array(lending_incomes)
+
+ax3.bar(x, stock_profits_arr, width, label='Stock Return (Capital Gain/Loss)', color='#ff3366', alpha=0.8)
+
+bottoms = np.where(stock_profits_arr > 0, stock_profits_arr, 0)
+ax3.bar(x, lending_incomes_arr, width, bottom=bottoms, label='FPSL Lending Income', color='#00ffcc', alpha=0.8)
+
+ax3.scatter(x, net_profits, color='white', edgecolor='black', s=20, zorder=5, label='Net Trade Profit')
+
+ax3.set_title(f'Per-Trade Return Breakdown (Representative MC Sim #{target_sim_idx})', fontsize=18, fontweight='bold', color='white')
+ax3.set_xlabel('Trade Index (Chronological)', fontsize=14, color='white')
+ax3.set_ylabel('Profit / Loss (Millions USD)', fontsize=14, color='white')
+ax3.tick_params(colors='white')
+ax3.grid(axis='y', linestyle='--', alpha=0.2)
+
+fig3.patch.set_facecolor('#0b0f19')
+ax3.set_facecolor('#0b0f19')
+
+leg3 = ax3.legend(fontsize=12, facecolor='#0b0f19', edgecolor='white')
+for text in leg3.get_texts():
+    text.set_color("white")
+
+plt.tight_layout()
+plt.savefig('../fpsl_mc_representative_trades.png', dpi=300, facecolor=fig3.get_facecolor(), edgecolor='none')
+plt.close(fig3)
