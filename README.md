@@ -14,7 +14,7 @@ However, rather than relying solely on the capital appreciation (the "gap up") o
 4. **The FPSL Kicker (The "Rent"):** During the 60-day holding period, these biotech stocks are heavily shorted by the broader market predicting failure. The fund lends its shares out to these short-sellers, collecting massive borrow fees (typically ranging from 40% to 120% APR).
 5. **Exit:** The position is exited exactly 2 days after the catalyst date to capture the gap-up return and close the trade.
 
-A **Monte Carlo Simulation (100 Iterations)** was performed assuming the AI model has an **80% Precision Rate** (80% of taken trades are actual clinical successes, 20% are actual failures). The daily-rebalancing model (focusing solely on the high-frequency 2014-2018 window) compounded an initial capital of $10M into a **Mean Final NAV of $724.84 Million** (a **173.70% Mean CAGR**).
+A **Monte Carlo Simulation (1000 Iterations)** was performed assuming the AI model has an **80% Precision Rate** (80% of taken trades are actual clinical successes, 20% are actual failures). The daily-rebalancing model (focusing solely on the high-frequency 2014-2018 window) compounded an initial capital of $10M into a **Mean Final NAV of $748.19 Million** (a **175.02% Mean CAGR**).
 
 ![Fund Performance Curve](fpsl_mc_plot.png)
 
@@ -24,7 +24,7 @@ In reality, many "successful" Phase 2/3 trials result in the stock trading down 
 ![Per-Trade Statistics](fpsl_mc_boxplots.png)
 
 ### Representative Simulation (Per-Trade Breakdown)
-To visualize exactly how the yield cushions the capital losses in a single sequential timeline, the script isolates the specific simulation whose final NAV closest matches the $724.84 Million Mean.
+To visualize exactly how the yield cushions the capital losses in a single sequential timeline, the script isolates the specific simulation whose final NAV closest matches the $748.19 Million Mean.
 
 ![Representative MC Simulation Trades](fpsl_mc_representative_trades.png)
 

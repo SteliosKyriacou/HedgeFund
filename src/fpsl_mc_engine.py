@@ -168,7 +168,7 @@ if len(valid_successes) == 0 or len(valid_failures) == 0:
 
 # Monte Carlo Engine
 INITIAL_CAPITAL = 10000000.0
-NUM_SIMS = 100
+NUM_SIMS = 1000
 
 sim_nav_histories = []
 sim_cagrs = []
@@ -302,7 +302,7 @@ ax.set_ylabel('Portfolio NAV (USD) - Log Scale', fontsize=12, fontweight='bold',
 import matplotlib.ticker as ticker
 ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda y, pos: f'${y:,.0f}'))
 
-plt.title(f'Monte Carlo Simulation: Daily Rebalancing with 80% AI Precision (100 Sims)', fontsize=16, fontweight='bold', color='white', pad=20)
+plt.title(f'Monte Carlo Simulation: Daily Rebalancing with 80% AI Precision ({NUM_SIMS} Sims)', fontsize=16, fontweight='bold', color='white', pad=20)
 plt.xlabel('Trading Days', fontsize=12, fontweight='bold', color='white')
 plt.grid(True, alpha=0.2, linestyle='--')
 plt.legend(loc='upper left', fontsize=12, frameon=True, facecolor='#1a1a1a', edgecolor='white')
@@ -338,7 +338,7 @@ ax2.boxplot([success_lending_yield, failure_lending_yield], labels=['Successes (
 ax2.set_title('Lending Yield Distribution (60-day Rent)', color='white', fontweight='bold')
 ax2.set_ylabel('Yield (%)', color='white')
 
-plt.suptitle('Monte Carlo Per-Transaction Distribution (100 Sims)', fontsize=16, fontweight='bold', color='white')
+plt.suptitle(f'Monte Carlo Per-Transaction Distribution ({NUM_SIMS} Sims)', fontsize=16, fontweight='bold', color='white')
 plt.tight_layout()
 plt.savefig('../fpsl_mc_boxplots.png', dpi=300)
 
