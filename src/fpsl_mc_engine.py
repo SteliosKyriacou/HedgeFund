@@ -187,6 +187,7 @@ sim_nav_histories = []
 sim_cagrs = []
 all_sim_trades = []
 sim_trade_stats = []
+sim_distributions_list = []
 
 # Total trades to sample per sim to match approx V1
 # Let's say ~230 trades per sim.
@@ -218,6 +219,8 @@ for sim_idx in range(NUM_SIMS):
     portfolio_history = []
     
     current_nav = INITIAL_CAPITAL
+    distributions = []
+    total_distributed = 0.0
     
     trade_stats = {id(ev): {
         'Ticker': ev['Ticker'],
@@ -245,8 +248,8 @@ for sim_idx in range(NUM_SIMS):
             portfolio_history.append(current_nav)
             continue
             
-        # Realistic Constraint 1: AUM Capacity Ceiling ($50M)
-        investable_nav = min(current_nav, 50_000_000)
+        # Realistic Constraint 1: AUM Capacity Ceiling ($100M)
+        investable_nav = min(current_nav, 100_000_000)
         allocation_per_event = investable_nav / len(active_events)
         
         daily_total_profit = 0.0
@@ -257,10 +260,7 @@ for sim_idx in range(NUM_SIMS):
             if allocation_per_event > stats['Max_Capital_Invested']:
                 stats['Max_Capital_Invested'] = allocation_per_event
                 
-            # Realistic Constraint 2: Borrow Demand Caps ($2M) & Prime Broker Cut (50%)
-            lendable_amount = min(allocation_per_event, 2_000_000)
-            net_borrow_fee = ev['Borrow_Fee'] * 0.50
-            daily_lending = lendable_amount * (net_borrow_fee / 365.0)
+            daily_lending = allocation_per_event * (ev['Borrow_Fee'] / 365.0)
             
             stats['Lending_Income'] += daily_lending
             daily_total_profit += daily_lending
@@ -284,23 +284,26 @@ for sim_idx in range(NUM_SIMS):
                     
             if today_price is not None and yest_price is not None and yest_price > 0:
                 daily_pct = (today_price - yest_price) / yest_price
-                
-                # Realistic Constraint 3: Gap-Down Liquidity / Slippage on Exit
-                if current_date.date() == ev['Exit_Date'].date():
-                    if ev['Actual_Outcome'] == 'Success':
-                        daily_pct -= 0.05  # 5% slippage fighting algorithms for the exit
-                    else:
-                        daily_pct -= 0.15  # Extra 15% slippage trying to exit a halted/crashed failure
-                        
                 daily_stock_pnl = allocation_per_event * daily_pct
                 stats['Stock_Profit'] += daily_stock_pnl
                 daily_total_profit += daily_stock_pnl
                 
         current_nav += daily_total_profit
+        
+        # End of Quarter Distribution Check
+        next_date = current_date + timedelta(days=1)
+        if current_date.month != next_date.month and current_date.month in [3, 6, 9, 12]:
+            if current_nav > 100_000_000:
+                dist_amount = current_nav - 100_000_000
+                current_nav = 100_000_000
+                total_distributed += dist_amount
+                distributions.append({'Date': current_date.date(), 'Amount': dist_amount, 'Total_Distributed': total_distributed})
+                
         portfolio_history.append(current_nav)
         
     sim_nav_histories.append(portfolio_history)
     sim_trade_stats.append(list(trade_stats.values()))
+    sim_distributions_list.append(distributions)
     final_nav = portfolio_history[-1]
     years = total_days / 365.25
     cagr = (final_nav / INITIAL_CAPITAL) ** (1 / years) - 1
@@ -419,3 +422,32 @@ for text in leg3.get_texts():
 plt.tight_layout()
 plt.savefig('../fpsl_mc_representative_trades.png', dpi=300, facecolor=fig3.get_facecolor(), edgecolor='none')
 plt.close(fig3)
+
+# Plot Distributions for Representative Sim
+rep_distributions = sim_distributions_list[target_sim_idx]
+if rep_distributions:
+    fig4, ax4 = plt.subplots(figsize=(14, 7))
+    dates = [d['Date'] for d in rep_distributions]
+    amounts = [d['Amount'] / 1e6 for d in rep_distributions]
+    cumulative_amounts = [d['Total_Distributed'] / 1e6 for d in rep_distributions]
+    
+    # We can plot bar and line
+    ax4.bar(dates, amounts, color='#00ffcc', alpha=0.7, label='Quarterly Distribution', width=20)
+    ax4.plot(dates, cumulative_amounts, color='#ff3366', linewidth=3, marker='o', label='Cumulative Distributed')
+    
+    ax4.set_title(f'Capital Returned to VPs Over Time (Rep. Sim #{target_sim_idx})', fontsize=18, fontweight='bold', color='white')
+    ax4.set_xlabel('Date', fontsize=14, color='white')
+    ax4.set_ylabel('Distributed Capital (Millions USD)', fontsize=14, color='white')
+    ax4.tick_params(colors='white')
+    ax4.grid(axis='y', linestyle='--', alpha=0.2)
+    
+    fig4.patch.set_facecolor('#0b0f19')
+    ax4.set_facecolor('#0b0f19')
+    
+    leg4 = ax4.legend(fontsize=12, facecolor='#0b0f19', edgecolor='white')
+    for text in leg4.get_texts():
+        text.set_color('white')
+        
+    plt.tight_layout()
+    plt.savefig('../fpsl_mc_distributions.png', dpi=300, facecolor=fig4.get_facecolor(), edgecolor='none')
+    plt.close(fig4)
