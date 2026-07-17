@@ -245,7 +245,10 @@ for sim_idx in range(NUM_SIMS):
             portfolio_history.append(current_nav)
             continue
             
-        allocation_per_event = current_nav / len(active_events)
+        # Realistic Constraint 1: AUM Capacity Ceiling ($50M)
+        investable_nav = min(current_nav, 50_000_000)
+        allocation_per_event = investable_nav / len(active_events)
+        
         daily_total_profit = 0.0
         yesterday = current_date - timedelta(days=1)
         
@@ -254,7 +257,11 @@ for sim_idx in range(NUM_SIMS):
             if allocation_per_event > stats['Max_Capital_Invested']:
                 stats['Max_Capital_Invested'] = allocation_per_event
                 
-            daily_lending = allocation_per_event * (ev['Borrow_Fee'] / 365.0)
+            # Realistic Constraint 2: Borrow Demand Caps ($2M) & Prime Broker Cut (50%)
+            lendable_amount = min(allocation_per_event, 2_000_000)
+            net_borrow_fee = ev['Borrow_Fee'] * 0.50
+            daily_lending = lendable_amount * (net_borrow_fee / 365.0)
+            
             stats['Lending_Income'] += daily_lending
             daily_total_profit += daily_lending
             
@@ -277,6 +284,14 @@ for sim_idx in range(NUM_SIMS):
                     
             if today_price is not None and yest_price is not None and yest_price > 0:
                 daily_pct = (today_price - yest_price) / yest_price
+                
+                # Realistic Constraint 3: Gap-Down Liquidity / Slippage on Exit
+                if current_date.date() == ev['Exit_Date'].date():
+                    if ev['Actual_Outcome'] == 'Success':
+                        daily_pct -= 0.05  # 5% slippage fighting algorithms for the exit
+                    else:
+                        daily_pct -= 0.15  # Extra 15% slippage trying to exit a halted/crashed failure
+                        
                 daily_stock_pnl = allocation_per_event * daily_pct
                 stats['Stock_Profit'] += daily_stock_pnl
                 daily_total_profit += daily_stock_pnl
